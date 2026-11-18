@@ -26,19 +26,15 @@ class App {
         if (syncRes && syncRes.connected) {
             pill.innerHTML = `
                 <span class="db-status-dot" style="background:#10b981; box-shadow:0 0 8px #10b981;"></span>
-                <span>PostgreSQL: Connected (${syncRes.status?.database || 'Manufacturing System'})</span>
+                <span>System: Online</span>
             `;
-            pill.title = 'Connected to PostgreSQL database';
+            pill.title = 'Real-time database connection active';
         } else {
             pill.innerHTML = `
                 <span class="db-status-dot" style="background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span>
-                <span style="cursor:pointer;" id="db-connect-prompt">Configure Connection</span>
+                <span style="cursor:pointer;" id="db-connect-prompt">Offline Mode</span>
             `;
-            pill.title = syncRes?.status?.error || 'Click to configure PostgreSQL connection';
-            const promptBtn = document.getElementById('db-connect-prompt');
-            if (promptBtn) {
-                promptBtn.addEventListener('click', () => this.showDbConfigModal());
-            }
+            pill.title = 'Offline mode active';
         }
     }
 
@@ -46,22 +42,22 @@ class App {
         const modalHtml = `
             <div style="padding: 1.5rem;">
                 <h3 style="margin-top:0; margin-bottom: 0.5rem; display:flex; align-items:center; gap:0.5rem;">
-                    ${Icons.database} PostgreSQL Database Connection
+                    ${Icons.database} Enterprise Database Connection
                 </h3>
                 <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.25rem;">
-                    Enter your PostgreSQL password to sync live tables directly from <strong>Manufacturing System</strong>.
+                    Enter your database credentials to sync live records directly with <strong>Manufacturing db system</strong>.
                 </p>
                 <div style="margin-bottom:1rem;">
                     <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.35rem;">Database Name</label>
-                    <input type="text" id="modal-db-name" value="Manufacturing System" style="width:100%; padding:0.6rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-main);" />
+                    <input type="text" id="modal-db-name" value="Manufacturing db system" style="width:100%; padding:0.6rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-main);" />
                 </div>
                 <div style="margin-bottom:1rem;">
                     <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.35rem;">Username</label>
                     <input type="text" id="modal-db-user" value="postgres" style="width:100%; padding:0.6rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-main);" />
                 </div>
                 <div style="margin-bottom:1.5rem;">
-                    <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.35rem;">PostgreSQL Password</label>
-                    <input type="password" id="modal-db-pass" placeholder="Enter password used in pgAdmin" style="width:100%; padding:0.6rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-main);" />
+                    <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.35rem;">Password</label>
+                    <input type="password" id="modal-db-pass" placeholder="Enter database password" style="width:100%; padding:0.6rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-main);" />
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
                     <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
@@ -70,23 +66,23 @@ class App {
                 <div id="modal-status-msg" style="margin-top:1rem; font-size:0.85rem;"></div>
             </div>
         `;
-        openModal('PostgreSQL Connection Settings', modalHtml);
+        openModal('Database Connection Settings', modalHtml);
         document.getElementById('modal-cancel-btn')?.addEventListener('click', closeModal);
         document.getElementById('modal-connect-btn')?.addEventListener('click', async () => {
             const pass = document.getElementById('modal-db-pass').value;
             const dbName = document.getElementById('modal-db-name').value;
             const user = document.getElementById('modal-db-user').value;
             const statusMsg = document.getElementById('modal-status-msg');
-            statusMsg.innerHTML = '<span style="color:var(--text-muted);">Connecting to PostgreSQL...</span>';
+            statusMsg.innerHTML = '<span style="color:var(--text-muted);">Verifying connection...</span>';
             const res = await db.saveDbConfig(pass, dbName, user);
             if (res.connected) {
-                statusMsg.innerHTML = '<span style="color:#10b981; font-weight:600;">Connected to PostgreSQL. Syncing records...</span>';
+                statusMsg.innerHTML = '<span style="color:#10b981; font-weight:600;">Connected. Syncing records...</span>';
                 setTimeout(() => {
                     closeModal();
                     this.updateDbStatus({ connected: true, status: res });
                     this.renderSidebarNav();
                     this.refreshCurrentView();
-                    showToast('Connected to PostgreSQL: ' + (res.database || 'Manufacturing System'));
+                    showToast('Connected: ' + (res.database || 'Manufacturing db system'));
                 }, 1000);
             } else {
                 statusMsg.innerHTML = `<span style="color:#ef4444; font-weight:600;">Connection failed: ${res.error || 'Check password'}</span>`;
@@ -106,7 +102,7 @@ class App {
             });
         }
 
-        // Global Quick Search
+        // Global Quick Search (if present)
         const searchInput = document.getElementById('global-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -115,15 +111,15 @@ class App {
             });
         }
 
-        // Reset Data action
+        // Live Data Refresh action
         const resetBtn = document.getElementById('btn-reset-db');
         if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                if (confirm('Reset all DBMS tables to default seed data?')) {
-                    db.resetData();
-                    showToast('Database reset to default seed records.');
-                    this.refreshCurrentView();
-                }
+            resetBtn.addEventListener('click', async () => {
+                showToast('Syncing live plant data...');
+                const res = await db.syncFromDatabase();
+                this.updateDbStatus(res);
+                this.refreshCurrentView();
+                showToast('Plant data up to date');
             });
         }
 
@@ -162,12 +158,6 @@ class App {
                     { id: 'work_centers', label: 'Work Centers', icon: Icons.workCenters, count: () => db.data.work_centers?.length },
                     { id: 'suppliers', label: 'Suppliers', icon: Icons.suppliers, count: () => db.data.suppliers?.length },
                     { id: 'customers', label: 'Customers', icon: Icons.customers, count: () => db.data.customers?.length }
-                ]
-            },
-            {
-                title: 'System Architecture',
-                items: [
-                    { id: 'er_diagram', label: 'Database Schema', icon: Icons.erDiagram, count: '8 Tables' }
                 ]
             }
         ];
@@ -213,6 +203,25 @@ class App {
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
+        // Update header breadcrumb title
+        const titles = {
+            'dashboard': 'Dashboard',
+            'analytics': 'Operations Analytics',
+            'products': 'Products Catalog',
+            'bill_of_materials': 'Bill of Materials',
+            'production_orders': 'Production Orders',
+            'shopfloor_kanban': 'Order Pipeline',
+            'production_logs': 'Shift Logs',
+            'raw_materials': 'Raw Materials',
+            'work_centers': 'Work Centers',
+            'suppliers': 'Suppliers Directory',
+            'customers': 'Customer Accounts'
+        };
+        const titleEl = document.getElementById('header-page-title');
+        if (titleEl && titles[viewId]) {
+            titleEl.textContent = titles[viewId];
+        }
+
         switch (viewId) {
             case 'dashboard':
                 this.renderDashboard(main);
@@ -247,9 +256,6 @@ class App {
                 break;
             case 'customers':
                 this.renderCustomersView(main);
-                break;
-            case 'er_diagram':
-                this.renderERDiagramView(main);
                 break;
             default:
                 this.renderDashboard(main);
@@ -1514,192 +1520,6 @@ class App {
     }
 
     // ==========================================
-    // 12. RELATIONAL ER DIAGRAM VIEW
-    // ==========================================
-    renderERDiagramView(container) {
-        container.innerHTML = `
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">Relational ER Diagram Architecture</h1>
-                    <p class="page-subtitle">Visual blueprint of all 8 database entities, Primary Keys (PK), Foreign Keys (FK), and Cardinalities</p>
-                </div>
-            </div>
-
-            <!-- Interactive Schema Grid -->
-            <div class="er-canvas-grid">
-                <!-- 1. Customers -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #1e40af;">
-                        <span>Customers</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">4 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} cust_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row"><span>cust_name</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-attr-row"><span>phone_no</span><span style="color: var(--text-subtle);">VARCHAR(20)</span></div>
-                        <div class="er-attr-row"><span>email</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-attr-row"><span>address</span><span style="color: var(--text-subtle);">TEXT</span></div>
-                        <div class="er-relation-badge">Master Customer Entity</div>
-                    </div>
-                </div>
-
-                <!-- 2. Suppliers -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #334155;">
-                        <span>Suppliers</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">3 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} supp_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row"><span>company_name</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-attr-row"><span>phone</span><span style="color: var(--text-subtle);">VARCHAR(20)</span></div>
-                        <div class="er-attr-row"><span>address</span><span style="color: var(--text-subtle);">TEXT</span></div>
-                        <div class="er-relation-badge">1 : N with Raw_Material</div>
-                    </div>
-                </div>
-
-                <!-- 3. Raw Material -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #0d9488;">
-                        <span>Raw_Material</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">5 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} material_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row"><span>material_name</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-attr-row"><span>stock</span><span style="color: var(--text-subtle);">INT</span></div>
-                        <div class="er-attr-row"><span>unit_cost</span><span style="color: var(--text-subtle);">DECIMAL(10,2)</span></div>
-                        <div class="er-attr-row">
-                            <span class="fk-pill">${Icons.link} supp_id</span>
-                            <span style="color: var(--text-subtle);">FK &rarr; Suppliers</span>
-                        </div>
-                        <div class="er-relation-badge">Used in Bill_of_Material (1:N)</div>
-                    </div>
-                </div>
-
-                <!-- 4. Work Center -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #0284c7;">
-                        <span>Work_Center</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">4 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} centre_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row"><span>centre_name</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-attr-row"><span>hourly_rate</span><span style="color: var(--text-subtle);">DECIMAL(10,2)</span></div>
-                        <div class="er-attr-row"><span>status</span><span style="color: var(--text-subtle);">ENUM</span></div>
-                        <div class="er-attr-row"><span>location</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-relation-badge">1 : N with Products</div>
-                    </div>
-                </div>
-
-                <!-- 5. Products -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #4338ca;">
-                        <span>Products</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">5 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} prod_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row"><span>prod_name</span><span style="color: var(--text-subtle);">VARCHAR(100)</span></div>
-                        <div class="er-attr-row"><span>unit_price</span><span style="color: var(--text-subtle);">DECIMAL(10,2)</span></div>
-                        <div class="er-attr-row"><span>stock</span><span style="color: var(--text-subtle);">INT</span></div>
-                        <div class="er-attr-row">
-                            <span class="fk-pill">${Icons.link} centre_id</span>
-                            <span style="color: var(--text-subtle);">FK &rarr; Work_Center</span>
-                        </div>
-                        <div class="er-relation-badge">Parent for Orders & BOM</div>
-                    </div>
-                </div>
-
-                <!-- 6. Bill of Material -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #475569;">
-                        <span>Bill_of_Material</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">4 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} bom_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row">
-                            <span class="fk-pill">${Icons.link} prod_id</span>
-                            <span style="color: var(--text-subtle);">FK &rarr; Products</span>
-                        </div>
-                        <div class="er-attr-row">
-                            <span class="fk-pill">${Icons.link} material_id</span>
-                            <span style="color: var(--text-subtle);">FK &rarr; Raw_Material</span>
-                        </div>
-                        <div class="er-attr-row"><span>money</span><span style="color: var(--text-subtle);">DECIMAL(10,2)</span></div>
-                        <div class="er-relation-badge">Bridge: Products &harr; Materials</div>
-                    </div>
-                </div>
-
-                <!-- 7. Production Orders -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #2563eb;">
-                        <span>Production_Orders</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">6 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} order_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row">
-                            <span class="fk-pill">${Icons.link} prod_id</span>
-                            <span style="color: var(--text-subtle);">FK &rarr; Products</span>
-                        </div>
-                        <div class="er-attr-row"><span>target</span><span style="color: var(--text-subtle);">INT</span></div>
-                        <div class="er-attr-row"><span>start_date</span><span style="color: var(--text-subtle);">DATE</span></div>
-                        <div class="er-attr-row"><span>completion_date</span><span style="color: var(--text-subtle);">DATE</span></div>
-                        <div class="er-attr-row"><span>status</span><span style="color: var(--text-subtle);">ENUM</span></div>
-                        <div class="er-relation-badge">1 : N with Production_Logs</div>
-                    </div>
-                </div>
-
-                <!-- 8. Production Logs -->
-                <div class="er-entity-node">
-                    <div class="er-node-header" style="background-color: #0f766e;">
-                        <span>Production_Logs</span>
-                        <span style="font-size: 0.7rem; background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;">5 attributes</span>
-                    </div>
-                    <div class="er-node-body">
-                        <div class="er-attr-row">
-                            <span class="pk-pill">${Icons.key} log_id</span>
-                            <span style="color: var(--text-subtle);">VARCHAR(20) PK</span>
-                        </div>
-                        <div class="er-attr-row">
-                            <span class="fk-pill">${Icons.link} order_id</span>
-                            <span style="color: var(--text-subtle);">FK &rarr; Production_Orders</span>
-                        </div>
-                        <div class="er-attr-row"><span>labour_hours</span><span style="color: var(--text-subtle);">DECIMAL(6,2)</span></div>
-                        <div class="er-attr-row"><span>units_completed</span><span style="color: var(--text-subtle);">INT</span></div>
-                        <div class="er-attr-row"><span>updated_at</span><span style="color: var(--text-subtle);">TIMESTAMP</span></div>
-                        <div class="er-relation-badge">Child of Production_Orders</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // ==========================================
     // MODALS & CRUD OPERATIONS
     // ==========================================
     openProductModal(prodId = null) {
@@ -1709,7 +1529,7 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Product ID (Primary Key) *</label>
+                <label>Product ID *</label>
                 <input type="text" class="form-control" id="form-prod-id" value="${item ? item.prod_id : 'PROD-' + (Math.floor(100 + Math.random() * 900))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
                 <span class="form-helper">Unique identifier (e.g. PROD-101)</span>
             </div>
@@ -1728,7 +1548,7 @@ class App {
                 </div>
             </div>
             <div class="form-group">
-                <label>Assigned Work Center (Foreign Key: centre_id)</label>
+                <label>Assigned Work Center</label>
                 <select class="form-control" id="form-prod-centre">
                     <option value="">-- None / General Assembly --</option>
                     ${workCenters.map(wc => `
@@ -1779,11 +1599,11 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>BOM Entry ID (Primary Key) *</label>
+                <label>Recipe Item ID *</label>
                 <input type="text" class="form-control" id="form-bom-id" value="${item ? item.bom_id : 'BOM-' + (Math.floor(200 + Math.random() * 800))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">
-                <label>Finished Product (Foreign Key: prod_id) *</label>
+                <label>Finished Product *</label>
                 <select class="form-control" id="form-bom-prod" required>
                     <option value="">-- Select Product --</option>
                     ${products.map(p => `
@@ -1792,7 +1612,7 @@ class App {
                 </select>
             </div>
             <div class="form-group">
-                <label>Raw Material (Foreign Key: material_id) *</label>
+                <label>Raw Material Component *</label>
                 <select class="form-control" id="form-bom-mat" required>
                     <option value="">-- Select Material --</option>
                     ${materials.map(m => `
@@ -1847,11 +1667,11 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Order ID (Primary Key) *</label>
+                <label>Order Reference ID *</label>
                 <input type="text" class="form-control" id="form-ord-id" value="${item ? item.order_id : 'ORD-' + (Math.floor(900 + Math.random() * 100))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">
-                <label>Product to Manufacture (Foreign Key: prod_id) *</label>
+                <label>Product to Manufacture *</label>
                 <select class="form-control" id="form-ord-prod" required>
                     <option value="">-- Select Target Product --</option>
                     ${products.map(p => `
@@ -1939,11 +1759,11 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Production Log ID (Primary Key) *</label>
+                <label>Shift Log ID *</label>
                 <input type="text" class="form-control" id="form-log-id" value="${item ? item.log_id : 'LOG-' + (Math.floor(500 + Math.random() * 500))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">
-                <label>Production Order (Foreign Key: order_id) *</label>
+                <label>Production Order *</label>
                 <select class="form-control" id="form-log-order" required>
                     <option value="">-- Select Order --</option>
                     ${orders.map(o => {
@@ -2006,7 +1826,7 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Material ID (Primary Key) *</label>
+                <label>Material Inventory ID *</label>
                 <input type="text" class="form-control" id="form-mat-id" value="${item ? item.material_id : 'MAT-' + (Math.floor(100 + Math.random() * 900))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">
@@ -2024,7 +1844,7 @@ class App {
                 </div>
             </div>
             <div class="form-group">
-                <label>Primary Supplier (Foreign Key: supp_id)</label>
+                <label>Primary Supplier</label>
                 <select class="form-control" id="form-mat-supp">
                     <option value="">-- None / Spot Market --</option>
                     ${suppliers.map(s => `
@@ -2073,7 +1893,7 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Work Center ID (Primary Key) *</label>
+                <label>Work Center Code *</label>
                 <input type="text" class="form-control" id="form-wc-id" value="${item ? item.centre_id : 'WC-' + (Math.floor(10 + Math.random() * 90))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">
@@ -2140,7 +1960,7 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Supplier ID (Primary Key) *</label>
+                <label>Supplier ID *</label>
                 <input type="text" class="form-control" id="form-supp-id" value="${item ? item.supp_id : 'SUPP-' + (Math.floor(100 + Math.random() * 900))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">
@@ -2195,7 +2015,7 @@ class App {
 
         const bodyHTML = `
             <div class="form-group">
-                <label>Customer ID (Primary Key) *</label>
+                <label>Customer Account ID *</label>
                 <input type="text" class="form-control" id="form-cust-id" value="${item ? item.cust_id : 'CUST-' + (Math.floor(100 + Math.random() * 900))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
             </div>
             <div class="form-group">

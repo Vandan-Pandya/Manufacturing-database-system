@@ -383,32 +383,26 @@ body {
     gap: 1rem;
 }
 
-.search-bar-box {
+.header-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    background-color: var(--bg-page);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 0.45rem 0.85rem;
-    width: 320px;
-    color: var(--text-tertiary);
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.search-bar-box:focus-within {
-    border-color: var(--blue-base);
-    background-color: var(--bg-surface);
-    outline: 2px solid var(--blue-light);
-}
-
-.search-bar-box input {
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-primary);
+    gap: 0.55rem;
     font-size: 0.85rem;
-    width: 100%;
+}
+
+.breadcrumb-prefix {
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.breadcrumb-separator {
+    color: var(--border);
+    font-weight: 400;
+}
+
+.breadcrumb-current {
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .header-actions {
