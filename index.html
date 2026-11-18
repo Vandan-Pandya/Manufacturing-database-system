@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Manufacturing Database & Operations</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=4.0">
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="app-sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="brand-logo">
+                    <div class="brand-icon-box">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
+                    </div>
+                    <div>
+                        <div class="brand-title">Manufacturing DBMS</div>
+                        <div class="brand-subtitle">PostgreSQL · pgAdmin</div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Dynamic Nav Container populated by js/app.js -->
+            <div class="nav-sections" id="sidebar-nav-container"></div>
+
+            <div class="sidebar-footer">
+                <div class="db-status-pill">
+                    <span class="db-status-dot"></span>
+                    <span id="sidebar-db-status">PostgreSQL: Connected</span>
+                </div>
+                <button class="btn-secondary" id="btn-reset-db" style="font-size: 0.78rem; padding: 0.4rem; justify-content: center; width: 100%;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                    <span>Sync Database</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="main-wrapper">
+            <!-- Top App Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <div class="search-bar-box">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" id="global-search-input" placeholder="Search tables, products, IDs, orders..." />
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <button class="btn-primary" id="btn-quick-add">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>New Record</span>
+                    </button>
+                    <button class="icon-btn" id="theme-toggle-btn" title="Toggle Theme">
+                        <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Page Content Container -->
+            <main class="page-container" id="page-content">
+                <!-- Injected dynamically based on active route -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Application Module Scripts -->
+    <script type="module" src="js/app.js?v=4.0"></script>
+</body>
+</html>
