@@ -111,6 +111,9 @@ export function formatCurrency(amount) {
  * Status Badge Renderer - Simple, understated status pill
  */
 export function renderStatusBadge(status) {
-    const s = String(status || 'Operational').toLowerCase().replace(/\s+/g, '-');
-    return `<span class="badge badge-${s}"><span class="badge-dot"></span>${status}</span>`;
+    let text = status || 'Operational';
+    if (String(text).toLowerCase() === 'active') text = 'Operational';
+    if (String(text).toLowerCase() === 'inactive') text = 'Offline';
+    const s = String(text).toLowerCase().replace(/\s+/g, '-');
+    return `<span class="badge badge-${s}"><span class="badge-dot"></span>${text}</span>`;
 }

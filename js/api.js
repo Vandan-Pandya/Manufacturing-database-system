@@ -100,6 +100,15 @@ export class DataService {
                                 this.data[key] = dbData[key];
                             }
                         }
+                        if (Array.isArray(this.data.work_centers)) {
+                            this.data.work_centers.forEach(w => {
+                                if (w.status && w.status.toLowerCase() === 'active') {
+                                    w.status = 'Operational';
+                                } else if (w.status && w.status.toLowerCase() === 'inactive') {
+                                    w.status = 'Offline';
+                                }
+                            });
+                        }
                         this.saveData();
                         return { success: true, connected: true, status: this.dbStatus };
                     }
@@ -238,7 +247,7 @@ export class DataService {
         const totalOrders = this.data.production_orders?.length || 0;
         const rawMaterialsCount = this.data.raw_materials?.length || 0;
         const totalInventoryValue = (this.data.raw_materials || []).reduce((sum, item) => sum + (Number(item.stock) * Number(item.unit_cost)), 0);
-        const activeWorkCenters = (this.data.work_centers || []).filter(w => w.status === 'Operational').length;
+        const operationalWorkCenters = (this.data.work_centers || []).filter(w => (w.status || '').toLowerCase() === 'operational').length;
         const totalWorkCenters = this.data.work_centers?.length || 0;
         const lowStockMaterials = (this.data.raw_materials || []).filter(m => Number(m.stock) < 300).length;
 
@@ -248,7 +257,8 @@ export class DataService {
             totalOrders,
             rawMaterialsCount,
             totalInventoryValue,
-            activeWorkCenters,
+            operationalWorkCenters,
+            activeWorkCenters: operationalWorkCenters,
             totalWorkCenters,
             lowStockMaterials,
             customersCount: this.data.customers?.length || 0,

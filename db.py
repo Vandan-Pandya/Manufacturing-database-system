@@ -111,6 +111,14 @@ def get_all_data():
                         {k.lower(): serialize_val(v) for k, v in dict(row).items()}
                         for row in rows
                     ]
+                    if 'work_cent' in entity_key.lower() or 'work_cent' in table_name.lower():
+                        for row_item in serialized_rows:
+                            if 'status' in row_item:
+                                st = str(row_item['status']).strip().lower()
+                                if st in ['active', 'online']:
+                                    row_item['status'] = 'Operational'
+                                elif st in ['inactive']:
+                                    row_item['status'] = 'Offline'
                     data[entity_key] = serialized_rows
                 except Exception as e:
                     print(f"Error fetching table {table_name}: {e}")
@@ -162,7 +170,13 @@ def coerce_record(conn, table_name, record):
                 except (ValueError, TypeError):
                     coerced[k_lower] = 0.0
             else:
-                coerced[k_lower] = str(v)
+                val_str = str(v).strip()
+                if 'work_cent' in table_name.lower() and k_lower == 'status':
+                    if val_str.lower() in ['active', 'online']:
+                        val_str = 'Operational'
+                    elif val_str.lower() in ['inactive']:
+                        val_str = 'Offline'
+                coerced[k_lower] = val_str
         return coerced
 
 def create_record(entity_key, record):

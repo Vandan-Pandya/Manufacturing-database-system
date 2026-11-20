@@ -314,9 +314,9 @@ class App {
                         <span class="kpi-title">Work Centers Operational</span>
                         <div class="kpi-icon">${Icons.workCenters}</div>
                     </div>
-                    <div class="kpi-value">${stats.activeWorkCenters} <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-muted);">/ ${stats.totalWorkCenters} Online</span></div>
+                    <div class="kpi-value">${stats.operationalWorkCenters || stats.activeWorkCenters} <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-muted);">/ ${stats.totalWorkCenters} Total Stations</span></div>
                     <div class="kpi-footer">
-                        <span class="kpi-trend">Capacity Optimal</span>
+                        <span class="kpi-trend">● Operational</span>
                     </div>
                 </div>
 
@@ -1271,7 +1271,10 @@ class App {
     // 9. WORK CENTERS VIEW
     // ==========================================
     renderWorkCentersView(container) {
-        let items = db.data.work_centers || [];
+        let items = (db.data.work_centers || []).map(w => ({
+            ...w,
+            status: (w.status || '').toLowerCase() === 'active' ? 'Operational' : ((w.status || '').toLowerCase() === 'inactive' ? 'Offline' : w.status)
+        }));
 
         if (this.wcStatusFilter !== 'ALL') {
             items = items.filter(w => w.status === this.wcStatusFilter);
@@ -1285,13 +1288,16 @@ class App {
             );
         }
 
-        const operationalCount = (db.data.work_centers || []).filter(w => w.status === 'Operational').length;
+        const operationalCount = (db.data.work_centers || []).filter(w => (w.status || '').toLowerCase() === 'operational' || (w.status || '').toLowerCase() === 'active').length;
+        const maintenanceCount = (db.data.work_centers || []).filter(w => (w.status || '').toLowerCase() === 'maintenance').length;
+        const idleCount = (db.data.work_centers || []).filter(w => (w.status || '').toLowerCase() === 'idle').length;
+        const offlineCount = (db.data.work_centers || []).filter(w => (w.status || '').toLowerCase() === 'offline' || (w.status || '').toLowerCase() === 'inactive').length;
 
         container.innerHTML = `
             <div class="page-header">
                 <div>
                     <h1 class="page-title">Work Centers & Machinery</h1>
-                    <p class="page-subtitle">Entity: <code>Work_Center(centre_id, centre_name, hourly_rate, status, location)</code></p>
+                    <p class="page-subtitle">Production machinery, work center statuses, machine operating costs, and bay locations</p>
                 </div>
                 <div class="header-actions">
                     <button class="btn-primary" id="btn-add-wc">${Icons.plus} Add Work Center</button>
@@ -1303,8 +1309,9 @@ class App {
                 <div class="filter-pills">
                     <button class="filter-pill-btn ${this.wcStatusFilter === 'ALL' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('ALL')">All Centers (${db.data.work_centers?.length || 0})</button>
                     <button class="filter-pill-btn ${this.wcStatusFilter === 'Operational' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('Operational')">Operational (${operationalCount})</button>
-                    <button class="filter-pill-btn ${this.wcStatusFilter === 'Maintenance' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('Maintenance')">Maintenance</button>
-                    <button class="filter-pill-btn ${this.wcStatusFilter === 'Idle' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('Idle')">Idle</button>
+                    <button class="filter-pill-btn ${this.wcStatusFilter === 'Maintenance' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('Maintenance')">Maintenance (${maintenanceCount})</button>
+                    <button class="filter-pill-btn ${this.wcStatusFilter === 'Idle' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('Idle')">Idle (${idleCount})</button>
+                    <button class="filter-pill-btn ${this.wcStatusFilter === 'Offline' ? 'active' : ''}" onclick="window.app.setWCStatusFilter('Offline')">Offline (${offlineCount})</button>
                 </div>
                 <div>
                     <button class="btn-secondary" style="font-size: 0.8rem;" id="btn-export-wc">Export CSV</button>
@@ -1908,7 +1915,7 @@ class App {
                 <div class="form-group">
                     <label>Operational Status *</label>
                     <select class="form-control" id="form-wc-status">
-                        <option value="Operational" ${item && item.status === 'Operational' ? 'selected' : ''}>Operational</option>
+                        <option value="Operational" ${(!item || item.status === 'Operational' || item.status === 'Active') ? 'selected' : ''}>Operational</option>
                         <option value="Maintenance" ${item && item.status === 'Maintenance' ? 'selected' : ''}>Maintenance</option>
                         <option value="Idle" ${item && item.status === 'Idle' ? 'selected' : ''}>Idle</option>
                         <option value="Offline" ${item && item.status === 'Offline' ? 'selected' : ''}>Offline</option>
