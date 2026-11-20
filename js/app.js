@@ -1763,36 +1763,81 @@ class App {
         const isEdit = !!logId;
         const item = isEdit ? (db.data.production_logs || []).find(l => String(l.log_id) === String(logId)) : null;
         const orders = db.data.production_orders || [];
+        const activeOrderId = presetOrderId || (item ? item.order_id : null);
+        const targetOrder = activeOrderId ? orders.find(o => String(o.order_id) === String(activeOrderId)) : null;
+        const targetProd = targetOrder ? (db.data.products || []).find(p => String(p.prod_id) === String(targetOrder.prod_id)) : null;
+        const progress = targetOrder ? db.getOrderProgress(targetOrder.order_id) : null;
+        const nextLogId = item ? item.log_id : 'LOG-' + (Math.floor(700 + Math.random() * 300));
 
-        const bodyHTML = `
-            <div class="form-group">
-                <label>Shift Log ID *</label>
-                <input type="text" class="form-control" id="form-log-id" value="${item ? item.log_id : 'LOG-' + (Math.floor(500 + Math.random() * 500))}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
-            </div>
-            <div class="form-group">
-                <label>Production Order *</label>
-                <select class="form-control" id="form-log-order" required>
-                    <option value="">-- Select Order --</option>
-                    ${orders.map(o => {
-                        const prod = (db.data.products || []).find(p => String(p.prod_id) === String(o.prod_id));
-                        const isSelected = (item && item.order_id === o.order_id) || (!item && presetOrderId === o.order_id);
-                        return `<option value="${o.order_id}" ${isSelected ? 'selected' : ''}>${o.order_id} - ${prod ? prod.prod_name : o.prod_id} (Target: ${o.target} units)</option>`;
-                    }).join('')}
-                </select>
-            </div>
-            <div class="form-row">
+        let bodyHTML = '';
+
+        if (targetOrder) {
+            // Streamlined modal for a specific product card / order (no product dropdown)
+            bodyHTML = `
+                <div style="background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Manufacturing Target</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${targetProd ? targetProd.prod_name : ('Product #' + targetOrder.prod_id)}</span>
+                        <span class="pk-pill">Order #${targetOrder.order_id}</span>
+                    </div>
+                    ${progress ? `
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; margin-bottom: 0.25rem;">
+                            <span>Progress: <strong>${progress.totalCompleted} / ${targetOrder.target} units</strong></span>
+                            <span>${progress.percentage}%</span>
+                        </div>
+                        <div class="progress-container" style="height: 6px;">
+                            <div class="progress-fill ${progress.percentage >= 100 ? 'success' : ''}" style="width: ${progress.percentage}%"></div>
+                        </div>
+                    ` : ''}
+                </div>
+                <input type="hidden" id="form-log-id" value="${nextLogId}" />
+                <input type="hidden" id="form-log-order" value="${targetOrder.order_id}" />
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Shift Labour Hours (Hours) *</label>
+                        <input type="number" step="0.5" class="form-control" id="form-log-hours" value="${item ? item.labour_hours : '8.0'}" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Units Completed this Shift *</label>
+                        <input type="number" class="form-control" id="form-log-units" value="${item ? item.units_completed : '25'}" required autofocus />
+                    </div>
+                </div>
+            `;
+        } else {
+            // General entry modal when opened without a preset card
+            bodyHTML = `
                 <div class="form-group">
-                    <label>Shift Labour Hours (Hours) *</label>
-                    <input type="number" step="0.5" class="form-control" id="form-log-hours" value="${item ? item.labour_hours : '8.0'}" required />
+                    <label>Shift Log ID *</label>
+                    <input type="text" class="form-control" id="form-log-id" value="${nextLogId}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} required />
                 </div>
                 <div class="form-group">
-                    <label>Units Completed this Shift *</label>
-                    <input type="number" class="form-control" id="form-log-units" value="${item ? item.units_completed : '25'}" required />
+                    <label>Production Order *</label>
+                    <select class="form-control" id="form-log-order" required>
+                        <option value="">-- Select Order --</option>
+                        ${orders.map(o => {
+                            const prod = (db.data.products || []).find(p => String(p.prod_id) === String(o.prod_id));
+                            return `<option value="${o.order_id}">${o.order_id} - ${prod ? prod.prod_name : o.prod_id} (Target: ${o.target} units)</option>`;
+                        }).join('')}
+                    </select>
                 </div>
-            </div>
-        `;
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Shift Labour Hours (Hours) *</label>
+                        <input type="number" step="0.5" class="form-control" id="form-log-hours" value="${item ? item.labour_hours : '8.0'}" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Units Completed this Shift *</label>
+                        <input type="number" class="form-control" id="form-log-units" value="${item ? item.units_completed : '25'}" required />
+                    </div>
+                </div>
+            `;
+        }
 
-        openModal(isEdit ? 'Edit Shift Production Log' : 'Record Shift Production Log', bodyHTML, () => {
+        const modalTitle = targetOrder ?
+            (isEdit ? `Edit Log · ${targetProd ? targetProd.prod_name : ('Order #' + targetOrder.order_id)}` : `Log Shift Progress · ${targetProd ? targetProd.prod_name : ('Order #' + targetOrder.order_id)}`) :
+            (isEdit ? 'Edit Shift Production Log' : 'Record Shift Production Log');
+
+        openModal(modalTitle, bodyHTML, () => {
             const id = document.getElementById('form-log-id').value.trim();
             const order_id = document.getElementById('form-log-order').value;
             const labour_hours = parseFloat(document.getElementById('form-log-hours').value) || 0;
@@ -1811,7 +1856,7 @@ class App {
                 showToast(`Log ${id} updated.`);
             } else {
                 db.create('production_logs', record);
-                showToast(`Shift log ${id} recorded successfully!`);
+                showToast(`+${units_completed} units logged successfully!`);
             }
             this.refreshCurrentView();
             return true;
